@@ -1,0 +1,61 @@
+<?php
+function wpdemo_post_types() {	
+	$tlabels = array(
+		'name'                  => esc_html_x( 'Team', 'Post Type General Name', 'wpdemo' ),
+		'singular_name'         => esc_html_x( 'Team', 'Post Type Singular Name', 'wpdemo' ),
+		'menu_name'             => esc_html__( 'Team', 'wpdemo' ),
+		'name_admin_bar'        => esc_html__( 'Team', 'wpdemo' ),
+		'archives'              => esc_html__( 'Item Archives', 'wpdemo' ),
+		'attributes'            => esc_html__( 'Item Attributes', 'wpdemo' ),
+		'parent_item_colon'     => esc_html__( 'Parent Item:', 'wpdemo' ),
+		'all_items'             => esc_html__( 'All Items', 'wpdemo' ),
+		'add_new_item'          => esc_html__( 'Add New Item', 'wpdemo' ),
+		'add_new'               => esc_html__( 'Add New', 'wpdemo' ),
+		'new_item'              => esc_html__( 'New Item', 'wpdemo' ),
+		'edit_item'             => esc_html__( 'Edit Item', 'wpdemo' ),
+		'update_item'           => esc_html__( 'Update Item', 'wpdemo' ),
+		'view_item'             => esc_html__( 'View Item', 'wpdemo' ),
+		'view_items'            => esc_html__( 'View Items', 'wpdemo' ),
+		'search_items'          => esc_html__( 'Search Item', 'wpdemo' ),
+		'not_found'             => esc_html__( 'Not found', 'wpdemo' ),
+		'not_found_in_trash'    => esc_html__( 'Not found in Trash', 'wpdemo' ),
+		'featured_image'        => esc_html__( 'Featured Image', 'wpdemo' ),
+		'set_featured_image'    => esc_html__( 'Set featured image', 'wpdemo' ),
+		'remove_featured_image' => esc_html__( 'Remove featured image', 'wpdemo' ),
+		'use_featured_image'    => esc_html__( 'Use as featured image', 'wpdemo' ),
+		'insert_into_item'      => esc_html__( 'Insert into item', 'wpdemo' ),
+		'uploaded_to_this_item' => esc_html__( 'Uploaded to this item', 'wpdemo' ),
+		'items_list'            => esc_html__( 'Items list', 'wpdemo' ),
+		'items_list_navigation' => esc_html__( 'Items list navigation', 'wpdemo' ),
+		'filter_items_list'     => esc_html__( 'Filter items list', 'wpdemo' ),
+	);
+	$trewrite = array(
+		'slug'                  => 'team',
+		'with_front'            => true,
+		'pages'                 => true,
+		'feeds'                 => true,
+	);
+	$targs = array(
+		'label'                 => esc_html__( 'Team', 'wpdemo' ),
+		'description'           => esc_html__( 'Team Description', 'wpdemo' ),
+		'labels'                => $tlabels,
+		'supports'              => array( 'title', 'editor', 'thumbnail' ),
+		'hierarchical'          => false,
+		'public'                => true,
+		'show_ui'               => true,
+		'show_in_menu'          => true,
+		'menu_position'         => 10,
+		'menu_icon'             => 'dashicons-book',
+		'show_in_admin_bar'     => true,
+		'show_in_nav_menus'     => true,
+		'can_export'            => true,
+		'has_archive'           => false,
+		'exclude_from_search'   => false,
+		'publicly_queryable'    => true,
+		'rewrite'               => $trewrite,
+		'capability_type'       => 'page',
+		'show_in_rest'			=>true,
+	);
+	register_post_type( 'wd_teams', $targs );
+}
+add_action( 'init', 'wpdemo_post_types', 0 );
