@@ -61,7 +61,34 @@ class DUPX_U
         }
     }
 
-	/**
+    /**
+     * Add replace strings to substitute old url to new url
+     * 1) no protocol old url to no protocol new url (es. //www.hold.url  => //www.new.url)
+     * 2) wrong protocol new url to right protocol new url (es. http://www.new.url => https://www.new.url)
+     *
+     * @param string $old
+     * @param string $new
+     */
+    public static function replacmentUrlOldToNew($old, $new)
+    {
+        //SEARCH WITH NO PROTOCOL: RAW "//"
+        $url_old_raw = str_ireplace(array('http://', 'https://'), '//', $old);
+        $url_new_raw = str_ireplace(array('http://', 'https://'), '//', $new);
+        DUPX_U::queueReplacementWithEncodings($url_old_raw, $url_new_raw);
+
+        //FORCE NEW PROTOCOL "//"
+        $url_new_info   = parse_url($new);
+        $url_new_domain = $url_new_info['scheme'].'://'.$url_new_info['host'];
+
+        if ($url_new_info['scheme'] == 'http') {
+            $url_new_wrong_protocol = 'https://'.$url_new_info['host'];
+        } else {
+            $url_new_wrong_protocol = 'http://'.$url_new_info['host'];
+        }
+        DUPX_U::queueReplacementWithEncodings($url_new_wrong_protocol, $url_new_domain);
+    }
+
+    /**
 	 * Does one string contain other
 	 *
 	 * @param string $haystack		The full string to search
@@ -132,20 +159,30 @@ class DUPX_U
      */
     public static function isURLActive($url, $port, $timeout = 5)
     {
-        if (function_exists('fsockopen')) {
-            @ini_set("default_socket_timeout", 5);
-            $port      = isset($port) && is_integer($port) ? $port : 80;
-            $connected = @fsockopen($url, $port, $errno, $errstr, $timeout); //website and port
-            if ($connected) {
-                @fclose($connected);
-                return true;
-            }
-            return false;
-        } else {
-            return false;
-        }
+		 $exists = false;
+		 if (function_exists('get_headers')) {
+			$url =  is_integer($port) ? $url . ':' . $port 	: $url;
+			DUPX_Handler::$should_log = false;
+			$headers = @get_headers($url);
+			DUPX_Handler::$should_log = true;
+			if (is_array($headers) && strpos($headers[0], '404') === false) {
+				 $exists = true;
+			}
+		} else {
+			if (function_exists('fsockopen')) {
+				@ini_set("default_socket_timeout", 5);
+				$port = isset($port) && is_integer($port) ? $port : 80;
+				$host = parse_url($url, PHP_URL_HOST);
+				$connected = @fsockopen($host, $port, $errno, $errstr, $timeout); //website and port
+				if ($connected) {
+					@fclose($connected);
+					$exists = true;
+				}
+			}
+		}
+		return $exists;
     }
-    
+
 	/**
 	 *  A safe method used to copy larger files
 	 *
@@ -341,6 +378,21 @@ class DUPX_U
 		return preg_match('/[^\x20-\x7f]/', $string);
 	}
 
+	/**
+	 * Is an object traversable
+	 *
+	 * @param object $obj The object to evaluate
+	 *
+	 * @return bool Returns true if the object can be looped over safely
+	 */
+	public static function isTraversable($obj)
+	{
+		if (is_null($obj))
+			return false;
+
+		return (is_array($obj) || $obj instanceof Traversable);
+	}
+
     /**
      * Is the server running Windows operating system
      *
@@ -398,6 +450,7 @@ class DUPX_U
 	{
 		$val	 = trim($val);
 		$last	 = strtolower($val[strlen($val) - 1]);
+		$val	 = intval($val);
 		switch ($last) {
 			// The 'G' modifier is available since PHP 5.1.0
 			case 'g':
@@ -462,23 +515,6 @@ class DUPX_U
     }
 
 	/**
-	 * Tests a CDN URL to see if it responds
-	 *
-	 * @param string $url	The URL to ping
-	 * @param string $port	The URL port to use
-	 *
-	 * @return bool Returns true if the CDN URL is active
-	 */
-	public static function tryCDN($url, $port)
-	{
-		if ($GLOBALS['FW_USECDN']) {
-			return DUPX_HTTP::is_url_active($url, $port);
-		} else {
-			return false;
-		}
-	}
-
-	/**
 	 *  Makes path unsafe for any OS for PHP used primarily to show default
 	 *  Windows OS path standard
 	 *
@@ -489,8 +525,8 @@ class DUPX_U
 	public static function unsetSafePath($path)
 	{
 		return str_replace("/", "\\", $path);
-	}	 
-	
+	}
+
 	/**
      *  Check PHP version
      *
@@ -502,7 +538,26 @@ class DUPX_U
     {
         return (version_compare(PHP_VERSION, $version) >= 0);
 	}
-	
+
+
+    /**
+     * @param $url string The URL whichs domain you want to get
+     * @return bool|string The domain part of the given URL
+     */
+    public static function getDomain($url)
+    {
+        $pieces = parse_url($url);
+        $domain = isset($pieces['host']) ? $pieces['host'] : '';
+        if(strpos($domain,".") !== false){
+            if (preg_match('/(?P<domain>[a-z0-9][a-z0-9\-]{1,63}\.[a-z\.]{2,6})$/i', $domain, $regs)) {
+                return $regs['domain'];
+            }
+        }else{
+            return $domain;
+        }
+
+        return false;
+	}
 	// START ESCAPING AND SANITIZATION
 	/**
 	 * Escaping for HTML blocks.
@@ -584,7 +639,7 @@ class DUPX_U
 	 */
 	public static function esc_textarea( $text )
 	{
-		$safe_text = htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );		
+		$safe_text = htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
 		/**
 		 * Filters a string cleaned and escaped for output in a textarea element.
 		 *
@@ -911,7 +966,7 @@ class DUPX_U
 		return ( ! in_array( $i, $allowedentitynames ) ) ? "&amp;$i;" : "&$i;";
 	}
 
-    
+
     /**
     * Helper function to determine if a Unicode value is valid.
     *
@@ -924,7 +979,7 @@ class DUPX_U
                 ($i >= 0xe000 && $i <= 0xfffd) ||
                 ($i >= 0x10000 && $i <= 0x10ffff) );
     }
-        
+
 	/**
 	 * Callback for wp_kses_normalize_entities() regular expression.
 	 *
@@ -1104,7 +1159,7 @@ class DUPX_U
 		return $good_protocol_url;
 	}
 
-	
+
 	/**
 	 * Removes any invalid control characters in $string.
 	 *
@@ -1239,11 +1294,12 @@ class DUPX_U
 		$string2 = strtolower($string2);
 
 		$allowed = false;
-		foreach ( (array) $allowed_protocols as $one_protocol )
+		foreach ( (array) $allowed_protocols as $one_protocol ) {
 			if ( strtolower($one_protocol) == $string2 ) {
 				$allowed = true;
 				break;
 			}
+		}
 
 		if ($allowed)
 			return "$string2:";
@@ -1263,7 +1319,7 @@ class DUPX_U
 	}
 
 	// SANITIZE Functions
-	
+
 	/**
 	 * Normalize EOL characters and strip duplicate whitespace.
 	 *
@@ -1420,7 +1476,7 @@ class DUPX_U
 		return $matches[0];
 	}
 
-	
+
 	/**
 	 * Remove slashes from a string or array of strings.
 	 *
@@ -1486,7 +1542,7 @@ class DUPX_U
 		return is_string($value) ? stripslashes($value) : $value;
 	}
 
-	
+
 	/**
 	 * Normalize a filesystem path.
 	 *

@@ -1166,3 +1166,8 @@ form.wpcf7-form textarea{
 .kt-tab-title{
     text-decoration: none;
 }
+.premium-container__content_wrap{
+    width: 100%;
+    max-width: 1120px !important;
+    margin: 0px auto;
+}

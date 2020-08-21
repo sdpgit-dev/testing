@@ -60,11 +60,11 @@
 
     /*Adv Opts */
     table.dupx-opts {width:100%; border:0px;}
-	table.dupx-opts td{white-space:nowrap; padding:3px;}
+	table.dupx-opts td{padding:3px;}
 	table.dupx-opts td:first-child{width:125px; font-weight: bold}
 	table.dupx-advopts td:first-child{width:125px;}
 	table.dupx-advopts label.radio {width:50px; display:inline-block}
-	table.dupx-advopts label {cursor:pointer}
+	table.dupx-advopts label {white-space:nowrap; cursor:pointer}
 	table.dupx-advopts-space {line-height:24px}
 
 	div.error-pane {border:1px solid #efefef; border-left:4px solid #D54E21; padding:0 0 0 10px; margin:2px 0 10px 0}
@@ -279,6 +279,16 @@
 	table.help-opt td, th {padding:7px; border:1px solid silver;}
 	table.help-opt td:first-child {font-weight:bold; padding-right:10px; white-space:nowrap}
 	table.help-opt th {background: #333; color: #fff;border:1px solid #333; padding:3px}
+
+    /* ============================
+    VIEW EXCEPTION
+	============================	*/
+    .exception-trace {
+        overflow: auto;
+        border: 1px solid lightgray;
+        padding: 10px;
+        margin: 0;
+    }
 
 
 	/*!

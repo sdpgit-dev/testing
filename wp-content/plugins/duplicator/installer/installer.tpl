@@ -262,8 +262,25 @@ class DUPX_Bootstrap
 		//ATTEMPT EXTRACTION:
 		//ZipArchive and Shell Exec
 		if ($extract_installer) {
-
 			self::log("Ready to extract the installer");
+
+			self::log("Checking permission of destination folder");
+			$destination = dirname(__FILE__);
+			if (!is_writable($destination)) {
+				self::log("destination folder for extraction is not writable");
+				if (@chmod($destination, 0755)) {
+					self::log("Permission of destination folder changed to 0755");
+				} else {
+					self::log("Permission of destination folder failed to change to 0755");
+				}
+			}
+
+			if (!is_writable($destination)) {
+				$error	= "NOTICE: The {$destination} directory is not writable on this server please talk to your host or server admin about making ";
+				$error	.= "<a target='_blank' href='https://snapcreek.com/duplicator/docs/faqs-tech/#faq-trouble-055-q'>writable {$destination} directory</a> on this server. <br/>";
+				return $error; 
+			}
+
 
 			if ($isZip) {
 				$zip_mode = $this->getZipMode();
@@ -305,6 +322,15 @@ class DUPX_Bootstrap
 						}
 					}
 				}
+				
+				// If both ZipArchive and ShellZip are not available, Error message should be combined for both
+				if (!$extract_success && $zip_mode == DUPX_Bootstrap_Zip_Mode::AutoUnzip) {
+					$unzip_filepath = $this->getUnzipFilePath();
+					if (!class_exists('ZipArchive') && empty($unzip_filepath)) {
+						$error	 = "NOTICE: ZipArchive and Shell Exec are not enabled on this server please talk to your host or server admin about enabling ";
+						$error	 .= "<a target='_blank' href='https://snapcreek.com/duplicator/docs/faqs-tech/#faq-trouble-060-q'>ZipArchive</a> or <a target='_blank' href='http://php.net/manual/en/function.shell-exec.php'>Shell Exec</a> on this server or manually extract archive then choose Advanced > Manual Extract in installer.";	
+					}
+				}
 			} else {
 				DupArchiveMiniExpander::init("DUPX_Bootstrap::log");
 				try {
@@ -318,11 +344,13 @@ class DUPX_Bootstrap
 			self::log("Didn't need to extract the installer.");
 		}
 
-		$config_files = glob('./dup-installer/dup-archive__*.txt');
-		$config_file_absolute_path = array_pop($config_files);
-		if (!file_exists($config_file_absolute_path)) {
-			$error = '<b>Archive config file not found in dup-installer folder.</b> <br><br>';
-			return $error;
+		if (empty($error)) {
+			$config_files = glob('./dup-installer/dup-archive__*.txt');
+			$config_file_absolute_path = array_pop($config_files);
+			if (!file_exists($config_file_absolute_path)) {
+				$error = '<b>Archive config file not found in dup-installer folder.</b> <br><br>';
+				return $error;
+			}
 		}
 		
 		$is_https = $this->isHttps();
@@ -378,9 +406,14 @@ class DUPX_Bootstrap
 
 	public function postExtractProcessing()
 	{
-		$dproInstallerDir = dirname(__FILE__) . '/dup-installer';
+		$dproInstallerDir = dirname(__FILE__) . '/dup-installer';                
 		$libDir = $dproInstallerDir . '/lib';
 		$fileopsDir = $libDir . '/fileops';
+        
+        if(!file_exists($dproInstallerDir)) {
+        
+            return 'Can\'t extract installer directory. See <a target="_blank" href="https://snapcreek.com/duplicator/docs/faqs-tech/#faq-installer-022-q">this FAQ item</a> for details on how to resolve.</a>';
+        }
 
 		$sourceFilepath = "{$fileopsDir}/fileops.ppp";
 		$destFilepath = "{$fileopsDir}/fileops.php";
@@ -389,7 +422,7 @@ class DUPX_Bootstrap
 			if(@rename($sourceFilepath, $destFilepath) === false) {
 				return "Error renaming {$sourceFilepath}";
 			}
-		}
+		}                
 	}
 
 	/**
@@ -782,10 +815,14 @@ class DUPX_Bootstrap
     }
 }
 
-$boot  = new DUPX_Bootstrap();
-$boot_error = $boot->run();
-$auto_refresh = isset($_POST['auto-fresh']) ? true : false;
-DUPX_CSRF::resetAllTokens();
+try {
+    $boot  = new DUPX_Bootstrap();
+    $boot_error = $boot->run();
+    $auto_refresh = isset($_POST['auto-fresh']) ? true : false;
+    DUPX_CSRF::resetAllTokens();
+} catch (Exception $e) {
+   $boot_error = $e->getMessage();
+}
 
 if ($boot_error == null) {
 	$step1_csrf_token = DUPX_CSRF::generate('step1');
